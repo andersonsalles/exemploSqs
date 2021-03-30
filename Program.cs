@@ -20,8 +20,8 @@ namespace TesteSQS
 
             Console.WriteLine("Creating queue!");
 
-            AmazonSQSClient sqsClient = new AmazonSQSClient(Amazon.RegionEndpoint.APSoutheast2);
-            string queueUrl = CreateQueue(sqsClient, "ReportsQueue", "10");
+            AmazonSQSClient sqsClient = new AmazonSQSClient(Amazon.RegionEndpoint.USEast1);
+            string queueUrl = CreateQueue(sqsClient, "ReportsQueue", "30");
 
 
             Console.WriteLine($"Queue created. Url: {queueUrl}");
@@ -38,9 +38,9 @@ namespace TesteSQS
             Console.WriteLine("Finished sending messages to SQS. Press enter to continue.");
             Console.ReadKey();
             Console.WriteLine("Starting to read messages from SQS");
-
+            
             ReceiveMessage(queueUrl, sqsClient);
-
+            
             Console.WriteLine("Finished to read messages from SQS");
 
             Console.ReadKey();
@@ -69,10 +69,26 @@ namespace TesteSQS
 
                     Console.WriteLine("*********************************");
                     Console.WriteLine($"SQS Message Id: {message.MessageId}");
+                    Console.WriteLine($"SQS Message Id: {message.ReceiptHandle}");
                     Console.WriteLine($"Message Id: {filter.Id}");
                     Console.WriteLine($"Message DataIni: {filter.DataIni}");
                     Console.WriteLine($"Message DateEnd: {filter.DataEnd}");
                     Console.WriteLine("*********************************");
+                    Console.WriteLine($"Deleting Message...");
+
+                    DeleteMessageRequest deleteMessageRequest = new DeleteMessageRequest();
+                    deleteMessageRequest.QueueUrl = queueUrl;
+                    deleteMessageRequest.ReceiptHandle = message.ReceiptHandle;
+                    DeleteMessageResponse response =
+                        Task.Run(async () => await sqsClient.DeleteMessageAsync(deleteMessageRequest)).Result;
+                    if (response.HttpStatusCode == HttpStatusCode.OK)
+                    {
+                        Console.WriteLine($"Deleted Message...");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"ERROR: {response.HttpStatusCode}");
+                    }
                     Console.WriteLine();
                 }
                 counter++;
