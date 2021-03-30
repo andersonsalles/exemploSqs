@@ -7,6 +7,7 @@ namespace TesteSQS
 {
     public class ReportFilters
     {
+        public int Id { get; set; }
         public DateTime DataIni { get; set; }
         public DateTime DataEnd { get; set; }
 
