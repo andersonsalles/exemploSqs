@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Microsoft.VisualBasic;
 
 namespace TesteSQS
 {
@@ -33,6 +35,61 @@ namespace TesteSQS
                 Console.WriteLine($"Message {message.Id} sent to queue. HTTP response code {sendMessageResponse.HttpStatusCode}");
             }
 
+            Console.WriteLine("Finished sending messages to SQS. Press enter to continue.");
+            Console.ReadKey();
+            Console.WriteLine("Starting to read messages from SQS");
+
+            ReceiveMessage(queueUrl, sqsClient);
+
+            Console.WriteLine("Finished to read messages from SQS");
+
+            Console.ReadKey();
+
+        }
+
+        private static void ReceiveMessage(string queueUrl, AmazonSQSClient sqsClient)
+        {
+            ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest();
+            receiveMessageRequest.QueueUrl = queueUrl;
+
+            var counter = 0;
+
+            var lenght = NumbersOfMessagesInQueue(queueUrl, sqsClient);
+
+            while (counter < lenght)
+            {
+                ReceiveMessageResponse receiveMessageResponse =
+                    Task.Run(async () => await sqsClient.ReceiveMessageAsync(receiveMessageRequest)).Result;
+
+                if (receiveMessageResponse.HttpStatusCode == HttpStatusCode.OK)
+                {
+                    Message message = receiveMessageResponse.Messages[0];
+
+                    ReportFilters filter = JsonSerializer.Deserialize<ReportFilters>(message.Body);
+
+                    Console.WriteLine("*********************************");
+                    Console.WriteLine($"SQS Message Id: {message.MessageId}");
+                    Console.WriteLine($"Message Id: {filter.Id}");
+                    Console.WriteLine($"Message DataIni: {filter.DataIni}");
+                    Console.WriteLine($"Message DateEnd: {filter.DataEnd}");
+                    Console.WriteLine("*********************************");
+                    Console.WriteLine();
+                }
+                counter++;
+            }
+        }
+
+        private static int NumbersOfMessagesInQueue(string queueUrl, AmazonSQSClient sqsClient)
+        {
+            GetQueueAttributesRequest attReq = new GetQueueAttributesRequest();
+            attReq.QueueUrl = queueUrl;
+            attReq.AttributeNames.Add("ApproximateNumberOfMessages");
+
+            GetQueueAttributesResponse response =
+                Task.Run(async () => await sqsClient.GetQueueAttributesAsync(attReq)).Result;
+
+            var retval = response.ApproximateNumberOfMessages;
+            return retval;
         }
 
         private static SendMessageResponse SendMessage(string msg, string queueUrl, AmazonSQSClient sqsClient)
