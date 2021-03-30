@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 
@@ -19,9 +20,20 @@ namespace TesteSQS
             string queueUrl = CreateQueue(sqsClient, "ReportsQueue", "10");
         }
 
-        private static string CreateQueue(AmazonSQSClient sqsClient, string reportsqueue, string s)
+        private static string CreateQueue(AmazonSQSClient sqsClient, string reportsqueue, string visibilityTimeout)
         {
-            return "";
+            CreateQueueRequest createQueueRequest = new CreateQueueRequest();
+
+            createQueueRequest.QueueName = reportsqueue;
+
+            Dictionary<string,string> attrs = new Dictionary<string, string>();
+            attrs.Add(QueueAttributeName.VisibilityTimeout, visibilityTimeout);
+            createQueueRequest.Attributes = attrs;
+
+            CreateQueueResponse createQueueResponse =
+                Task.Run(async () => await sqsClient.CreateQueueAsync(createQueueRequest)).Result;
+
+            return createQueueResponse.QueueUrl;
         }
 
         private static IEnumerable<ReportFilters> CreateMessages()
